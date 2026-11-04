@@ -1,0 +1,45 @@
+# Local setup: Flask app + Postgres. Open http://localhost:5000
+# Values below can be overridden from a .env file next to this file.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: tour_booking_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-tour_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-tourpass123}
+      POSTGRES_DB: ${DB_NAME:-tour_booking}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+  web:
+    build: .
+    container_name: tour_booking_web
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      DB_ENGINE: postgresql
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER:-tour_user}
+      DB_PASSWORD: ${DB_PASSWORD:-tourpass123}
+      DB_NAME: ${DB_NAME:-tour_booking}
+      # SECRET_KEY: ${SECRET_KEY:-local-dev-secret-change-me}
+      # DEFAULT_ADMIN_NAME: ${DEFAULT_ADMIN_NAME:-Super Admin}
+      # DEFAULT_ADMIN_EMAIL: ${DEFAULT_ADMIN_EMAIL:-admin@example.com}
+      # DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-Admin@123}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/app/app/static/images/uploads
+
+volumes:
+  pg_data:
+  uploads_data:
